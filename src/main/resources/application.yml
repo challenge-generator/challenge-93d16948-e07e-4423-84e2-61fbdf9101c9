@@ -1,0 +1,67 @@
+quarkus:
+  http:
+    port: 8080
+    host: 0.0.0.0
+    cors:
+      ~: true
+      origins: /.*/
+      headers: accept, authorization, content-type, x-requested-with
+      methods: GET, POST, PUT, DELETE, OPTIONS
+
+  mongodb:
+    database: payment_db
+    connection-string: mongodb://localhost:27017
+    max-pool-size: 100
+    min-pool-size: 10
+    max-connection-idle-time: 30M
+    max-connection-life-time: 1H
+
+  log:
+    category:
+      "com.fintech.payments":
+        level: INFO
+    console:
+      enable: true
+      format: "%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{3.}] (%t) %s%e%n"
+    file:
+      enable: true
+      path: ./logs/payment-processing.log
+      format: "%d{yyyy-MM-dd HH:mm:ss} %-5p [%c{3.}] (%t) %s%e%n"
+      rotation:
+        max-backup-index: 5
+        max-file-size: 10M
+
+  smallrye-fault-tolerance:
+    circuit-breaker:
+      delay: 30S
+      failure-ratio: 0.6
+      success-threshold: 2
+      request-volume-threshold: 4
+    retry:
+      max-retries: 3
+      delay: 200MS
+      jitter: 100MS
+      abort-on: com.fintech.payments.infrastructure.exception.IdempotencyException
+
+payment:
+  resilience:
+    risk-bureau:
+      timeout: 2S
+      circuit-breaker:
+        delay: 1M
+        failure-ratio: 0.7
+        success-threshold: 3
+        request-volume-threshold: 10
+    core-banking:
+      retry:
+        max-retries: 5
+        delay: 500MS
+        jitter: 200MS
+      circuit-breaker:
+        delay: 2M
+        failure-ratio: 0.5
+        success-threshold: 2
+        request-volume-threshold: 20
+  idempotency:
+    key-prefix: "payment_request:"
+    ttl: 24H
